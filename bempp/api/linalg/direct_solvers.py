@@ -41,7 +41,7 @@ def lu(A, b, lu_factor=None,useCupy=False):
     from bempp.api import GridFunction
     if useCupy:
         from cupyx.scipy.linalg import lu_solve
-        from cupy.scipy.linalg import solve
+        from cupy.linalg import solve
     else:
         from scipy.linalg import solve, lu_solve
     from bempp.api.assembly.blocked_operator import BlockedOperatorBase
