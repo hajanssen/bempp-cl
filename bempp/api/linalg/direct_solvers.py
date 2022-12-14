@@ -19,7 +19,7 @@ def compute_lu_factors(A):
     return lu_factor(as_matrix(A.weak_form()))
 
 
-def lu(A, b, lu_factor=None):
+def lu(A, b, lu_factor=None,useCupy=False):
     """Perform an LU solve.
 
     This function takes an operator and a grid function,
@@ -39,24 +39,28 @@ def lu(A, b, lu_factor=None):
 
     """
     from bempp.api import GridFunction
-    from scipy.linalg import solve, lu_solve
+    if useCupy:
+        from cupyx.scipy.linalg import lu_solve
+        from cupy.scipy.linalg import solve
+    else:
+        from scipy.linalg import solve, lu_solve
     from bempp.api.assembly.blocked_operator import BlockedOperatorBase
     from bempp.api.assembly.blocked_operator import projections_from_grid_functions_list
     from bempp.api.assembly.blocked_operator import grid_function_list_from_coefficients
 
     if isinstance(A, BlockedOperatorBase):
         vec = projections_from_grid_functions_list(b, A.dual_to_range_spaces)
-        if lu_factor is not None:
-            sol = lu_solve(lu_factor, vec)
-        else:
-            mat = A.weak_form().to_dense()
-            sol = solve(mat, vec)
-        return grid_function_list_from_coefficients(sol, A.domain_spaces)
     else:
         vec = b.projections(A.dual_to_range)
-        if lu_factor is not None:
-            sol = lu_solve(lu_factor, vec)
-        else:
-            mat = A.weak_form().to_dense()
-            sol = solve(mat, vec)
+        
+    if lu_factor is not None:
+        sol = lu_solve(lu_factor, vec)
+    else:
+        mat = A.weak_form().to_dense()
+        sol = solve(mat, vec)
+    
+    if isinstance(A, BlockedOperatorBase):
+        return grid_function_list_from_coefficients(sol, A.domain_spaces)
+    else:
         return GridFunction(A.domain, coefficients=sol)
+        
